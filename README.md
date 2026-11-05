@@ -25,7 +25,22 @@ Users receive **ypUSDC** vault shares that auto-compound as lending interest acc
 
 ---
 
-## 2. What's Rome-Native Here? (Arena Submission Note)
+## 2. Live Deployments & Arena Links
+
+- **Live Production dApp:** [https://yieldport-rome.vercel.app](https://yieldport-rome.vercel.app) *(Alternate: [https://rome-yieldport.vercel.app](https://rome-yieldport.vercel.app))*
+- **Public GitHub Repository:** [https://github.com/phu1271997/yield-port-rome](https://github.com/phu1271997/yield-port-rome)
+- **Deployed Contracts (Rome Hadrian Testnet - Chain ID `200010`):**
+  - **YieldVault (ERC-4626):** [`0xd14608D71E3459299D9F414dc2feFecC5697Fd97`](https://via-hadrian.testnet.romeprotocol.xyz/address/0xd14608D71E3459299D9F414dc2feFecC5697Fd97)
+  - **AaveV3Adapter:** [`0x9A39788df5d93b3b868b13BBa67434b116a938AA`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x9A39788df5d93b3b868b13BBa67434b116a938AA)
+  - **CpiProof:** [`0x06E1000f17ed4df83940A0b403D69D292188F2b0`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x06E1000f17ed4df83940A0b403D69D292188F2b0)
+- **Proven Milestone 1 Cross-VM Settlement:**
+  - **EVM Transaction Hash:** [`0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7)
+  - **Solana Devnet Settlement Signature:** `3AsRxvxW7cbqZWpkF1VQwF8oGC47Ci6sf396pKCsEvA4SDmEzR5PNcw4YrvV5b3fHLTvpfCu3EXyTQp9XLfByBD1`
+  - **Verify with Rome CLI:** `npx github:rome-protocol/rome-cli tx hadrian 0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7`
+
+---
+
+## 3. What's Rome-Native Here? (Arena Submission Note)
 
 On any standard EVM chain (Ethereum, Arbitrum, Base), reaching Solana liquidity requires:
 1. Bridging assets to Solana (5–20 minute latency, bridge vulnerability risks).

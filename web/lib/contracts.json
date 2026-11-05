@@ -1,13 +1,13 @@
 {
-  "network": "hardhat",
-  "chainId": 31337,
-  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "vault": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  "adapter": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  "asset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "aToken": "0x0000000000000000000000000000000000000000",
-  "aavePool": "0x0000000000000000000000000000000000000000",
-  "dataProvider": "0x0000000000000000000000000000000000000000",
-  "deployedAt": "2026-11-04T16:33:47.156Z",
-  "explorerUrl": ""
+  "network": "hadrian",
+  "chainId": 200010,
+  "deployer": "0x8b563A8c9eeF530300e92E26457D1AB001daEcC7",
+  "vault": "0xd14608D71E3459299D9F414dc2feFecC5697Fd97",
+  "adapter": "0x9A39788df5d93b3b868b13BBa67434b116a938AA",
+  "asset": "0xbce339ba4c3a8de3bb8af1c5539e6ac11da3112d",
+  "aToken": "0xc8b14eA508d5d4a542cE3d099d11Ce4bD296cc42",
+  "aavePool": "0x54701445dD60E29152eD7B4d78e4091c7678c58C",
+  "dataProvider": "0xd06528561115fdaeED8E1b066B589469EB5fE6Fb",
+  "deployedAt": "2026-11-05T02:24:23.512Z",
+  "explorerUrl": "https://via-hadrian.testnet.romeprotocol.xyz//address/0xd14608D71E3459299D9F414dc2feFecC5697Fd97"
 }
