@@ -297,9 +297,11 @@ export default function AppDashboard() {
             </Link>
             <div className="h-4 w-px bg-slate-300 dark:bg-slate-800" />
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center font-bold text-slate-950 text-sm">
-                YP
-              </div>
+              <img
+                src="/logo.png"
+                alt="Yield Port Logo"
+                className="w-8 h-8 object-contain"
+              />
               <span className="font-bold text-sm tracking-tight hidden sm:inline">
                 Yield Port App
               </span>

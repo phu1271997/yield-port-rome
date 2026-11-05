@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   title: "Yield Port — Lending Yield on Rome EVM with Atomic Solana Settlement",
   description: "Deposit USDC on Rome EVM, earn Aave v3 lending yield, and settle atomically on Solana via Rome Cross-Program Invocation.",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
   openGraph: {
     title: "Yield Port Protocol",

@@ -140,9 +140,11 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-50/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center font-bold text-slate-950 shadow-md shadow-amber-500/20">
-              YP
-            </div>
+            <img
+              src="/logo.png"
+              alt="Yield Port Logo"
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <div className="font-bold text-base leading-tight tracking-tight">Yield Port</div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
@@ -556,9 +558,11 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 dark:border-slate-800 py-12 px-4 bg-slate-100/50 dark:bg-slate-950 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center font-bold text-slate-950">
-              YP
-            </div>
+            <img
+              src="/logo.png"
+              alt="Yield Port Logo"
+              className="w-8 h-8 object-contain"
+            />
             <div>
               <div className="font-semibold text-slate-800 dark:text-slate-200">Yield Port Protocol</div>
               <div>Submitted to Rome Protocol Arena</div>
