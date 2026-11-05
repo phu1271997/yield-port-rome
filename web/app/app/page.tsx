@@ -194,12 +194,13 @@ export default function AppDashboard() {
   };
 
   const handleApprove = () => {
+    if (!parsedDeposit) return;
     resetWrite();
     writeContract({
       address: CONTRACT_CONFIG.usdcAddress,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [CONTRACT_CONFIG.vaultAddress, parseUnits("1000000", 6)],
+      args: [CONTRACT_CONFIG.vaultAddress, parsedDeposit],
     });
   };
 
