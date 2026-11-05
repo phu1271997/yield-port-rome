@@ -28,15 +28,21 @@ Users receive **ypUSDC** vault shares that auto-compound as lending interest acc
 ## 2. Live Deployments & Arena Links
 
 - **Live Production dApp:** [https://yieldport-rome.vercel.app](https://yieldport-rome.vercel.app) *(Alternate: [https://rome-yieldport.vercel.app](https://rome-yieldport.vercel.app))*
+  - **Landing Page:** [`/`](https://yieldport-rome.vercel.app/) — 7-section marketing & architecture overview
+  - **Interactive Vault App:** [`/app`](https://yieldport-rome.vercel.app/app) — Deposit, Withdraw, Live Stats & On-Demand CPI Verifier
 - **Public GitHub Repository:** [https://github.com/phu1271997/yield-port-rome](https://github.com/phu1271997/yield-port-rome)
 - **Deployed Contracts (Rome Hadrian Testnet - Chain ID `200010`):**
-  - **YieldVault (ERC-4626):** [`0xd14608D71E3459299D9F414dc2feFecC5697Fd97`](https://via-hadrian.testnet.romeprotocol.xyz/address/0xd14608D71E3459299D9F414dc2feFecC5697Fd97)
+  - **YieldVault (ERC-4626 + Atomic Solana CPI):** [`0x35277217b31573b0547a63469C19F7F35e7566Ab`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x35277217b31573b0547a63469C19F7F35e7566Ab)
   - **AaveV3Adapter:** [`0x9A39788df5d93b3b868b13BBa67434b116a938AA`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x9A39788df5d93b3b868b13BBa67434b116a938AA)
-  - **CpiProof:** [`0x06E1000f17ed4df83940A0b403D69D292188F2b0`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x06E1000f17ed4df83940A0b403D69D292188F2b0)
-- **Proven Milestone 1 Cross-VM Settlement:**
-  - **EVM Transaction Hash:** [`0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7)
-  - **Solana Devnet Settlement Signature:** `3AsRxvxW7cbqZWpkF1VQwF8oGC47Ci6sf396pKCsEvA4SDmEzR5PNcw4YrvV5b3fHLTvpfCu3EXyTQp9XLfByBD1`
-  - **Verify with Rome CLI:** `npx github:rome-protocol/rome-cli tx hadrian 0xb58b4c06d9787fbe1490466dec4f8ab079378e9498eda43deb36e8f4288c44d7`
+  - **wUSDC (Vault Underlying Asset):** [`0xbce339ba4c3a8de3bb8af1c5539e6ac11da3112d`](https://via-hadrian.testnet.romeprotocol.xyz/address/0xbce339ba4c3a8de3bb8af1c5539e6ac11da3112d)
+- **Proven Live Cross-VM Settlement (Atomic Solana CPI):**
+  - **EVM Transaction Hash:** [`0xcc6dcfbf1b88711894b7112212525281e33a0e6e7a267123320216b3e5e2141c`](https://via-hadrian.testnet.romeprotocol.xyz/tx/0xcc6dcfbf1b88711894b7112212525281e33a0e6e7a267123320216b3e5e2141c)
+  - **Solana Devnet Settlement Signature:** `4GkL5jWnL7mMqKX5XUpPADSrnGx9ByrbpEdMcqQ83SmJP3PnxSiGQtZgTQuX38a4nHnrfrsquD5mp1jhM1En35n9`
+  - **Verify with Rome CLI:**
+    ```bash
+    npx github:rome-protocol/rome-cli tx hadrian 0xcc6dcfbf1b88711894b7112212525281e33a0e6e7a267123320216b3e5e2141c
+    # Output: Status: success, SVM Signature: 4GkL5jWnL7mMqKX5XUpPADSrnGx9ByrbpEdMcqQ83SmJP3PnxSiGQtZgTQuX38a4nHnrfrsquD5mp1jhM1En35n9
+    ```
 
 ---
 
@@ -158,8 +164,10 @@ Expected output:
       ✔ should verify Kamino discriminators and account layouts
     CPI Proof Contract
       ✔ should deploy with target Solana Memo program ID
+    Atomic Solana CPI Integration
+      ✔ should execute atomic Solana CPI receipt through precompile simulation
 
-  16 passing
+  18 passing
 ```
 
 ---
@@ -193,18 +201,28 @@ The script dynamically:
 
 ## 7. Next.js Frontend (dApp)
 
+### Architecture & Routes
+- **`web/app/page.tsx` (`/`)**: 7-section Marketing Landing Page
+  1. **Hero**: High-impact value proposition, CTA to `/app`, live audit indicators.
+  2. **Trust Strip**: Rome Shared Sequencer, Hadrian testnet, Rubicon-ready, audited ERC-4626 standard.
+  3. **Problem vs Solution**: Split comparison highlighting bridge latency/risks vs atomic single-tx CPI.
+  4. **How It Works**: 3-step interactive breakdown (Deposit -> Atomic CPI -> Auto-compound & Withdraw).
+  5. **Live Protocol Stats**: On-chain TVL, dynamic APY, CPI finality (~400ms), and 0s bridge wait.
+  6. **Why Rome**: Deep dive into shared sequencers, atomic CPI precompiles, and Solana liquidity access.
+  7. **FAQ & Arena Footer**: Common user questions and direct links to GitHub, Rome Explorer, and Arena docs.
+- **`web/app/app/page.tsx` (`/app`)**: Interactive Vault Application
+  - **Dual Balance Display**: Real-time USDC Gas Balance + wUSDC token balance.
+  - **Deposit & Mint**: Enter USDC amount with instant shares preview (`previewDeposit`) and approval.
+  - **Withdraw & Redeem**: Burn ypUSDC shares to receive principal + accrued yield (`previewRedeem`).
+  - **On-Demand Atomic CPI Verifier**: 1-click test button executing `executeAtomicCpiReceipt()` with instant explorer settlement link.
+  - **Network Guard**: Auto-detection with 1-click switch to Rome Hadrian (`200010`).
+  - **Dark / Light Theme**: Persistent theme switcher in the navigation bar.
+
 ### Run Locally
 ```bash
 npm run web:dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Features
-- **Wallet Connection:** Connect MetaMask to Hadrian Testnet or Rubicon Mainnet.
-- **Dual Balance Display:** Real-time USDC Gas Balance + wUSDC token balance.
-- **Deposit & Mint:** Enter USDC amount with instant shares preview and 2-step approval.
-- **Withdraw & Redeem:** Burn ypUSDC shares to receive principal + accrued yield.
-- **Cross-VM Receipt Link:** Direct explorer link verifying atomic Solana settlement.
+Open [http://localhost:3000](http://localhost:3000) for the landing page or [http://localhost:3000/app](http://localhost:3000/app) for the vault app.
 
 ### Deploy to Vercel
 ```bash

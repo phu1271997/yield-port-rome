@@ -1,5 +1,6 @@
 import { ethers, network } from "hardhat";
-import { getChain, getTokens, getContracts } from "@rome-protocol/registry";
+import { getChain, getTokens, getContracts, getPrograms } from "@rome-protocol/registry";
+import bs58 from "bs58";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -97,19 +98,47 @@ async function main() {
     console.log("AaveV3Adapter deployed at:", adapterAddress);
   }
 
-  // 4. Deploy YieldVault
-  console.log("\n2. Deploying YieldVault (ERC-4626)...");
+  // 4. Resolve Solana Memo program dynamically from registry
+  console.log("\n2. Configuring Solana target program from registry...");
+  const cluster = chainId === 200010 ? "devnet" : "mainnet";
+  const clusterPrograms = getPrograms(cluster as any);
+  if (!clusterPrograms?.memo) {
+    throw new Error(`Memo program not found in registry for cluster: ${cluster}`);
+  }
+  const memoBase58 = clusterPrograms.memo;
+  const memoBytes = bs58.decode(memoBase58);
+  const solanaMemoProgram = "0x" + Buffer.from(memoBytes).toString("hex");
+  console.log(`Found live Solana Memo program (${cluster}):`, memoBase58);
+  console.log("Resolved Solana Memo program bytes32:", solanaMemoProgram);
+
   const YieldVaultFactory = await ethers.getContractFactory("YieldVault");
-  const vault = await YieldVaultFactory.deploy(
-    usdcAddress,
-    "Yield Port USDC",
-    "ypUSDC",
-    deployer.address,
-    { gasLimit: 60000000 }
-  );
-  await vault.waitForDeployment();
-  const vaultAddress = await vault.getAddress();
-  console.log("YieldVault deployed at:", vaultAddress);
+  const existingVault = process.env.VAULT_ADDRESS || "0x35277217b31573b0547a63469C19F7F35e7566Ab";
+  let vault: any;
+  let vaultAddress: string;
+
+  if (existingVault && network.name === "hadrian") {
+    console.log("Reusing deployed YieldVault at:", existingVault);
+    vault = YieldVaultFactory.attach(existingVault);
+    vaultAddress = existingVault;
+  } else {
+    vault = await YieldVaultFactory.deploy(
+      usdcAddress,
+      "Yield Port USDC",
+      "ypUSDC",
+      deployer.address,
+      solanaMemoProgram,
+      { gasLimit: 80000000 }
+    );
+    await vault.waitForDeployment();
+    vaultAddress = await vault.getAddress();
+    console.log("YieldVault deployed at:", vaultAddress);
+  }
+
+  // Set the live verified Solana program on vault
+  console.log("Updating target Solana program on vault...");
+  const txProg = await vault.setSolanaTargetProgram(solanaMemoProgram, true, { gasLimit: 5000000 });
+  await txProg.wait();
+  console.log("Vault configured with verified Solana Memo Program.");
 
   // 5. Connect Vault and Adapter
   console.log("\n3. Connecting Vault and Adapter...");
@@ -128,7 +157,14 @@ async function main() {
   console.log("- Vault active adapter:", configuredAdapter);
   console.log("- Vault estimated APY:", Number(estApy) / 100, "%");
 
-  // 7. Save outputs
+  // 7. Execute atomic Solana CPI proof
+  console.log("\n4. Executing atomic Solana CPI settlement receipt...");
+  const cpiTx = await vault.executeAtomicCpiReceipt("hadrian-settlement-proof", { gasLimit: 5000000 });
+  const cpiReceipt = await cpiTx.wait();
+  console.log("Atomic CPI receipt confirmed on Hadrian! Tx:", cpiReceipt.hash);
+
+  // 8. Save outputs
+  const cleanExplorerUrl = (chain.explorerUrl || "https://via-hadrian.testnet.romeprotocol.xyz").replace(/\/+$/, "");
   const deploymentData = {
     network: network.name,
     chainId,
@@ -139,8 +175,10 @@ async function main() {
     aToken: aTokenAddress,
     aavePool: aavePoolAddress,
     dataProvider: dataProviderAddress,
+    solanaProgram: solanaMemoProgram,
+    latestCpiTx: cpiReceipt.hash,
     deployedAt: new Date().toISOString(),
-    explorerUrl: chain.explorerUrl ? `${chain.explorerUrl}/address/${vaultAddress}` : "",
+    explorerUrl: `${cleanExplorerUrl}/address/${vaultAddress}`,
   };
 
   const outDir = path.join(__dirname, "../deployments");

@@ -10,12 +10,18 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ILendingAdapter} from "./interfaces/ILendingAdapter.sol";
+import {
+    ICrossProgramInvocation,
+    CpiProgram,
+    HelperProgram
+} from "@rome-protocol/rome-solidity/contracts/interface.sol";
 
 /// @title YieldVault
 /// @notice ERC-4626 compliant tokenized yield vault on Rome Protocol.
-///         Accepts USDC deposits from EVM wallets and routes them into
-///         lending markets (Aave v3 on Rome EVM or Solana lending markets like Kamino via atomic CPI).
-///         Users hold vault shares that appreciate as lending yield accrues.
+///         Accepts USDC deposits from EVM wallets and supplies them into
+///         Rome EVM lending strategies (Aave v3) while executing an atomic
+///         Solana Cross-Program Invocation (CPI) settlement receipt in the exact
+///         same block. Users hold vault shares that appreciate as lending yield accrues.
 contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -24,7 +30,7 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     IERC20 private immutable _asset;
     uint8 private immutable _assetDecimals;
 
-    /// @notice Pluggable lending adapter (AaveV3Adapter, KaminoCpiAdapter, etc.).
+    /// @notice Pluggable lending adapter (AaveV3Adapter, etc.).
     ILendingAdapter public adapter;
 
     /// @notice Minimum deposit to prevent dust griefing.
@@ -32,6 +38,12 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
     /// @notice Virtual offset for inflation attack protection (OpenZeppelin 4626 standard).
     uint8 private constant _DECIMALS_OFFSET = 3;
+
+    /// @notice Target Solana program ID for atomic Cross-Program Invocation (e.g. Memo Program).
+    bytes32 public solanaTargetProgram;
+
+    /// @notice Switch for atomic Solana CPI execution on deposit.
+    bool public atomicCpiEnabled;
 
     // Events
     event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
@@ -45,16 +57,27 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     event AdapterUpdated(address indexed previousAdapter, address indexed newAdapter);
     event MinDepositUpdated(uint256 previousMin, uint256 newMin);
     event EmergencyFundsRescued(address indexed token, address indexed to, uint256 amount);
+    event SolanaCpiSettlement(
+        address indexed sender,
+        address indexed receiver,
+        uint256 assets,
+        uint256 shares,
+        bytes32 indexed solanaProgram
+    );
+    event SolanaTargetProgramUpdated(bytes32 indexed newProgram, bool enabled);
 
     constructor(
         address assetAddress,
         string memory name,
         string memory symbol,
-        address initialOwner
+        address initialOwner,
+        bytes32 defaultSolanaProgram
     ) ERC20(name, symbol) Ownable(initialOwner) {
         require(assetAddress != address(0), "YieldVault: zero asset address");
         _asset = IERC20(assetAddress);
         _assetDecimals = IERC20Metadata(assetAddress).decimals();
+        solanaTargetProgram = defaultSolanaProgram;
+        atomicCpiEnabled = (defaultSolanaProgram != bytes32(0));
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -71,6 +94,13 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         adapter = newAdapter;
 
         emit AdapterUpdated(prev, address(newAdapter));
+    }
+
+    /// @notice Set or update the target Solana program ID for atomic CPI settlement.
+    function setSolanaTargetProgram(bytes32 newProgram, bool enabled) external onlyOwner {
+        solanaTargetProgram = newProgram;
+        atomicCpiEnabled = enabled;
+        emit SolanaTargetProgramUpdated(newProgram, enabled);
     }
 
     function setMinDeposit(uint256 newMin) external onlyOwner {
@@ -99,27 +129,18 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
         return _assetDecimals + _DECIMALS_OFFSET;
     }
 
-    /// @notice Total assets managed by vault (idle in vault + active in lending adapter).
+    /// @notice Total amount of underlying assets managed by the vault (liquid + deployed).
     function totalAssets() public view returns (uint256) {
-        uint256 idle = _asset.balanceOf(address(this));
-        uint256 invested = address(adapter) != address(0) ? adapter.totalDeposited() : 0;
-        return idle + invested;
+        uint256 liquid = _asset.balanceOf(address(this));
+        uint256 deployed = address(adapter) != address(0) ? adapter.totalDeposited() : 0;
+        return liquid + deployed;
     }
 
-    /// @notice Current price of one full vault share in underlying asset units.
-    function pricePerShare() external view returns (uint256) {
-        return convertToAssets(10 ** decimals());
-    }
-
-    /// @notice Current estimated APY reported by the active adapter (in basis points).
+    /// @notice Estimated annual percentage yield (in basis points) reported by active strategy.
     function getEstimatedApyBps() external view returns (uint256) {
         if (address(adapter) == address(0)) return 0;
         return adapter.getEstimatedApyBps();
     }
-
-    // ──────────────────────────────────────────────────────────────────
-    // Conversion & Preview Logic (Inflation-Attack Safe)
-    // ──────────────────────────────────────────────────────────────────
 
     function convertToShares(uint256 assets) public view returns (uint256) {
         return _convertToShares(assets, Math.Rounding.Floor);
@@ -135,6 +156,11 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
     function previewMint(uint256 shares) public view returns (uint256) {
         return _convertToAssets(shares, Math.Rounding.Ceil);
+    }
+
+    /// @notice Returns the price per 1 full share in asset units (e.g. 6 decimals for USDC).
+    function pricePerShare() external view returns (uint256) {
+        return convertToAssets(10 ** decimals());
     }
 
     function previewWithdraw(uint256 assets) public view returns (uint256) {
@@ -182,8 +208,7 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
     // ──────────────────────────────────────────────────────────────────
 
     /// @notice Deposit `assets` of USDC and mint vault `shares` to `receiver`.
-    /// @dev If an adapter is active, funds are atomically pushed into the lending protocol.
-    ///      If the adapter call fails, the entire transaction reverts.
+    /// @dev Atomically supplies into lending adapter AND executes a Solana CPI settlement receipt.
     function deposit(uint256 assets, address receiver)
         external
         nonReentrant
@@ -207,6 +232,9 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
         // 3. Mint shares to receiver
         _mint(receiver, shares);
+
+        // 4. Execute atomic Solana CPI settlement receipt
+        _executeSolanaAtomicCpi(msg.sender, receiver, assets, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
     }
@@ -233,20 +261,21 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
         _mint(receiver, shares);
 
+        _executeSolanaAtomicCpi(msg.sender, receiver, assets, shares);
+
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    /// @notice Withdraw exact `assets` to `receiver`, burning `shares` from `owner`.
+    /// @notice Withdraw `assets` of USDC to `receiver` by burning owner's shares.
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
     ) external nonReentrant returns (uint256 shares) {
-        require(assets > 0, "YieldVault: cannot withdraw zero assets");
+        require(assets > 0, "YieldVault: zero assets");
         require(receiver != address(0), "YieldVault: zero receiver");
 
         shares = previewWithdraw(assets);
-        require(shares > 0, "YieldVault: cannot burn zero shares");
 
         if (msg.sender != owner) {
             _spendAllowance(owner, msg.sender, shares);
@@ -254,53 +283,165 @@ contract YieldVault is ERC20, ReentrancyGuard, Pausable, Ownable {
 
         _burn(owner, shares);
 
-        // Ensure sufficient idle assets in vault; pull from adapter if necessary
-        _ensureLiquidAssets(assets);
+        uint256 liquid = _asset.balanceOf(address(this));
+        if (liquid < assets && address(adapter) != address(0)) {
+            uint256 needed = assets - liquid;
+            adapter.withdraw(needed, address(this));
+        }
 
         _asset.safeTransfer(receiver, assets);
 
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
-    /// @notice Redeem exact `shares` for `assets` sent to `receiver`.
+    /// @notice Redeem exact `shares` for underlying USDC sent to `receiver`.
     function redeem(
         uint256 shares,
         address receiver,
         address owner
     ) external nonReentrant returns (uint256 assets) {
-        require(shares > 0, "YieldVault: cannot redeem zero shares");
+        require(shares > 0, "YieldVault: zero shares");
         require(receiver != address(0), "YieldVault: zero receiver");
-
-        assets = previewRedeem(shares);
-        require(assets > 0, "YieldVault: cannot withdraw zero assets");
 
         if (msg.sender != owner) {
             _spendAllowance(owner, msg.sender, shares);
         }
 
+        assets = previewRedeem(shares);
+        require(assets > 0, "YieldVault: zero asset redemption");
+
         _burn(owner, shares);
 
-        _ensureLiquidAssets(assets);
+        uint256 liquid = _asset.balanceOf(address(this));
+        if (liquid < assets && address(adapter) != address(0)) {
+            uint256 needed = assets - liquid;
+            adapter.withdraw(needed, address(this));
+        }
 
         _asset.safeTransfer(receiver, assets);
 
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
-    /// @dev Internal helper to pull assets from adapter when idle vault balance is not enough.
-    function _ensureLiquidAssets(uint256 requiredAmount) internal {
-        uint256 currentBalance = _asset.balanceOf(address(this));
-        if (currentBalance < requiredAmount) {
-            uint256 deficit = requiredAmount - currentBalance;
-            require(address(adapter) != address(0), "YieldVault: no adapter to liquidate");
-            adapter.withdraw(deficit, address(this));
-            require(_asset.balanceOf(address(this)) >= requiredAmount, "YieldVault: liquidation insufficient");
+    // ──────────────────────────────────────────────────────────────────
+    // Solana Atomic CPI Internals
+    // ──────────────────────────────────────────────────────────────────
+
+    /// @notice Executes atomic CPI into the configured Solana program in the same transaction.
+    function _executeSolanaAtomicCpi(
+        address sender,
+        address receiver,
+        uint256 assets,
+        uint256 shares
+    ) internal {
+        if (!atomicCpiEnabled || solanaTargetProgram == bytes32(0)) {
+            return;
         }
+        // Local Hardhat node has chainId 31337 and lacks Rome non-EVM precompiles
+        if (block.chainid == 31337) {
+            emit SolanaCpiSettlement(sender, receiver, assets, shares, solanaTargetProgram);
+            return;
+        }
+
+        bytes32 callerPda = HelperProgram.pda(address(this));
+        ICrossProgramInvocation.AccountMeta[] memory accounts =
+            new ICrossProgramInvocation.AccountMeta[](1);
+        accounts[0] = ICrossProgramInvocation.AccountMeta({
+            pubkey: callerPda,
+            is_signer: true,
+            is_writable: false
+        });
+
+        bytes memory ixData = abi.encodePacked(
+            "YieldPort:deposit:snd=",
+            _toHexString(sender),
+            ":rec=",
+            _toHexString(receiver),
+            ":ast=",
+            _toString(assets),
+            ":shs=",
+            _toString(shares)
+        );
+
+        CpiProgram.invoke(solanaTargetProgram, accounts, ixData);
+        emit SolanaCpiSettlement(sender, receiver, assets, shares, solanaTargetProgram);
     }
 
-    /// @notice Emergency rescue for accidental tokens sent to vault (excluding primary asset).
+    /// @notice Explicitly executes an atomic CPI into the configured Solana program.
+    ///         Useful for verification via `rome tx hadrian <hash>`.
+    function executeAtomicCpiReceipt(string calldata customTag) external nonReentrant returns (bool) {
+        require(solanaTargetProgram != bytes32(0), "YieldVault: solana program not configured");
+        if (block.chainid == 31337) {
+            emit SolanaCpiSettlement(msg.sender, msg.sender, 0, 0, solanaTargetProgram);
+            return true;
+        }
+
+        bytes32 callerPda = HelperProgram.pda(address(this));
+        ICrossProgramInvocation.AccountMeta[] memory accounts =
+            new ICrossProgramInvocation.AccountMeta[](1);
+        accounts[0] = ICrossProgramInvocation.AccountMeta({
+            pubkey: callerPda,
+            is_signer: true,
+            is_writable: false
+        });
+
+        bytes memory ixData = abi.encodePacked(
+            "YieldPort:receipt:sender=",
+            _toHexString(msg.sender),
+            ":tag=",
+            customTag
+        );
+
+        CpiProgram.invoke(solanaTargetProgram, accounts, ixData);
+        emit SolanaCpiSettlement(msg.sender, msg.sender, 0, 0, solanaTargetProgram);
+        return true;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Internal Encoding Helpers
+    // ──────────────────────────────────────────────────────────────────
+
+    function _toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) return "0";
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    function _toHexString(address addr) internal pure returns (string memory) {
+        bytes memory s = new bytes(42);
+        s[0] = "0";
+        s[1] = "x";
+        bytes20 data = bytes20(addr);
+        bytes memory alphabet = "0123456789abcdef";
+        for (uint256 i = 0; i < 20; i++) {
+            s[2 + i * 2] = alphabet[uint8(data[i] >> 4)];
+            s[3 + i * 2] = alphabet[uint8(data[i] & 0x0f)];
+        }
+        return string(s);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Emergency Controls
+    // ──────────────────────────────────────────────────────────────────
+
     function rescueToken(address token, address to, uint256 amount) external onlyOwner {
+        rescueERC20(token, to, amount);
+    }
+
+    function rescueERC20(address token, address to, uint256 amount) public onlyOwner {
         require(token != address(_asset), "YieldVault: cannot rescue vault asset");
+        require(to != address(0), "YieldVault: zero rescue destination");
         IERC20(token).safeTransfer(to, amount);
         emit EmergencyFundsRescued(token, to, amount);
     }

@@ -3,10 +3,10 @@
     "hadrian": {
       "chainId": 200010,
       "name": "Rome Hadrian",
-      "network": "devnet",
+      "network": "hadrian",
       "status": "live",
       "rpcUrl": "https://hadrian.testnet.romeprotocol.xyz/",
-      "explorerUrl": "https://via-hadrian.testnet.romeprotocol.xyz/",
+      "explorerUrl": "https://via-hadrian.testnet.romeprotocol.xyz",
       "romeEvmProgramId": "RPTWwELXAY4KC9ZPHhaxp7Sq1hHtU3HNEgLbSegCcWf",
       "nativeCurrency": {
         "name": "Rome Hadrian",
@@ -22,10 +22,10 @@
     "rubicon": {
       "chainId": 7531,
       "name": "Rome Rubicon",
-      "network": "mainnet",
+      "network": "rubicon",
       "status": "live",
       "rpcUrl": "https://rubicon.mainnet.romeprotocol.xyz/",
-      "explorerUrl": "https://via-rubicon.mainnet.romeprotocol.xyz/",
+      "explorerUrl": "https://via-rubicon.mainnet.romeprotocol.xyz",
       "romeEvmProgramId": "RomePq9X3iAoTr813HR7uRarafFDUJty6GdiEceYpzX",
       "nativeCurrency": {
         "name": "Rome Rubicon",
@@ -1429,5 +1429,5 @@
       "jupiterV6": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
     }
   },
-  "exportedAt": "2026-11-05T02:24:37.180Z"
+  "exportedAt": "2026-11-05T03:19:25.365Z"
 }

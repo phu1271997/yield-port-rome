@@ -24,8 +24,10 @@ contract KaminoCpiAdapter is ILendingAdapter, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // Anchor Discriminators: sha256("global:<method>")[0..8]
-    bytes8 public constant DISC_DEPOSIT = bytes8(0xf223c68952e1f2b6); // deposit_reserve_liquidity
-    bytes8 public constant DISC_REDEEM  = bytes8(0xd6a495b28d44ee49); // redeem_reserve_collateral
+    // deposit_reserve_liquidity -> sha256("global:deposit_reserve_liquidity") = a9c91e7e06cd6644
+    // redeem_reserve_collateral -> sha256("global:redeem_reserve_collateral") = ea75b57db98edc1d
+    bytes8 public constant DISC_DEPOSIT = bytes8(0xa9c91e7e06cd6644); // deposit_reserve_liquidity
+    bytes8 public constant DISC_REDEEM  = bytes8(0xea75b57db98edc1d); // redeem_reserve_collateral
 
     // Solana Pubkeys (bytes32)
     bytes32 public klendProgramId;

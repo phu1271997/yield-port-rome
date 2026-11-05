@@ -2,12 +2,14 @@
   "network": "hadrian",
   "chainId": 200010,
   "deployer": "0x8b563A8c9eeF530300e92E26457D1AB001daEcC7",
-  "vault": "0xd14608D71E3459299D9F414dc2feFecC5697Fd97",
+  "vault": "0x35277217b31573b0547a63469C19F7F35e7566Ab",
   "adapter": "0x9A39788df5d93b3b868b13BBa67434b116a938AA",
   "asset": "0xbce339ba4c3a8de3bb8af1c5539e6ac11da3112d",
   "aToken": "0xc8b14eA508d5d4a542cE3d099d11Ce4bD296cc42",
   "aavePool": "0x54701445dD60E29152eD7B4d78e4091c7678c58C",
   "dataProvider": "0xd06528561115fdaeED8E1b066B589469EB5fE6Fb",
-  "deployedAt": "2026-11-05T02:24:23.512Z",
-  "explorerUrl": "https://via-hadrian.testnet.romeprotocol.xyz//address/0xd14608D71E3459299D9F414dc2feFecC5697Fd97"
+  "solanaProgram": "0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d",
+  "latestCpiTx": "0xcc6dcfbf1b88711894b7112212525281e33a0e6e7a267123320216b3e5e2141c",
+  "deployedAt": "2026-11-05T03:17:38.487Z",
+  "explorerUrl": "https://via-hadrian.testnet.romeprotocol.xyz/address/0x35277217b31573b0547a63469C19F7F35e7566Ab"
 }

@@ -34,13 +34,15 @@ describe("YieldPort Test Suite", function () {
     adapter = (await MockAdapterFactory.deploy(await usdc.getAddress())) as MockLendingAdapter;
     await adapter.waitForDeployment();
 
-    // Deploy YieldVault
+    // Deploy YieldVault with default Solana Memo Program ID
+    const memoProgram = "0x054a535a992921064d24e87160da387c7c35b5332306167f1abb9f9e0a845942";
     const VaultFactory = await ethers.getContractFactory("YieldVault");
     vault = (await VaultFactory.deploy(
       await usdc.getAddress(),
       "Yield Port USDC",
       "ypUSDC",
-      owner.address
+      owner.address,
+      memoProgram
     )) as YieldVault;
     await vault.waitForDeployment();
 
@@ -253,9 +255,27 @@ describe("YieldPort Test Suite", function () {
       );
       await adapterKamino.waitForDeployment();
 
-      expect(await adapterKamino.DISC_DEPOSIT()).to.equal("0xf223c68952e1f2b6");
-      expect(await adapterKamino.DISC_REDEEM()).to.equal("0xd6a495b28d44ee49");
+      expect(await adapterKamino.DISC_DEPOSIT()).to.equal("0xa9c91e7e06cd6644");
+      expect(await adapterKamino.DISC_REDEEM()).to.equal("0xea75b57db98edc1d");
       expect(await adapterKamino.getEstimatedApyBps()).to.equal(720); // 7.20%
+    });
+  });
+
+  describe("Solana Atomic CPI Settlement on Deposit", function () {
+    it("should configure target Solana program and fire CPI event on deposit", async function () {
+      const memoProgram = "0x054a535a992921064d24e87160da387c7c35b5332306167f1abb9f9e0a845942";
+      expect(await vault.solanaTargetProgram()).to.equal(memoProgram);
+      expect(await vault.atomicCpiEnabled()).to.be.true;
+
+      const depositAmount = ethers.parseUnits("100", 6);
+      await expect(vault.connect(alice).deposit(depositAmount, alice.address))
+        .to.emit(vault, "SolanaCpiSettlement")
+        .withArgs(alice.address, alice.address, depositAmount, await vault.previewDeposit(depositAmount), memoProgram);
+    });
+
+    it("should execute explicit testAtomicCpi receipt", async function () {
+      const tx = await vault.connect(alice).executeAtomicCpiReceipt("unit-test-tag");
+      await expect(tx).to.emit(vault, "SolanaCpiSettlement");
     });
   });
 

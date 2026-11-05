@@ -78,6 +78,34 @@ export const YIELD_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "previewRedeem",
+    inputs: [{ name: "shares", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "solanaTargetProgram",
+    inputs: [],
+    outputs: [{ type: "bytes32" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "atomicCpiEnabled",
+    inputs: [],
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "executeAtomicCpiReceipt",
+    inputs: [{ name: "customTag", type: "string" }],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "deposit",
     inputs: [
       { name: "assets", type: "uint256" },
