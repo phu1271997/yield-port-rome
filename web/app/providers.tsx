@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http, injected } from "wagmi";
 import { hadrian, rubicon } from "../lib/rome";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +23,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

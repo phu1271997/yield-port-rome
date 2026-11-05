@@ -170,6 +170,50 @@ Expected output:
   18 passing
 ```
 
+### Live Hadrian Integration Test (Atomic Solana CPI Deposit Path)
+
+Unlike local unit mocks on chain `31337`, this integration test executes directly against the **live Rome Hadrian testnet (chainId `200010`)** and asserts atomic settlement across both EVM and Solana SVM:
+1. Calls the deployed `YieldVault` (`0x35277217b31573b0547a63469C19F7F35e7566Ab`).
+2. Asserts emission of the `SolanaCpiSettlement` event on the EVM transaction receipt.
+3. Automatically queries `rome tx hadrian <hash>` to verify cross-VM settlement.
+4. Asserts that the inner Solana Devnet transaction invoked the native Solana Memo Program (`MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`).
+
+```bash
+npm run test:integration:hadrian
+```
+
+**Expected output:**
+```
+Running Atomic Solana CPI Integration Test on Hadrian
+Network: hadrian
+Chain ID: 200010
+Signer address: 0x8b563A8c9eeF530300e92E26457D1AB001daEcC7
+YieldVault address: 0x35277217b31573b0547a63469C19F7F35e7566Ab
+Solana Target Program (bytes32): 0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d
+Atomic CPI Enabled: true
+
+Submitting atomic Solana CPI transaction with tag: integration-test-dep-...
+Transaction submitted. Hash: 0x03133ff0ceaede07bd56a84bc1b4b86e39843fd3ca92d48d53339c13154cb519
+Transaction confirmed in block 518808276 (gasUsed: 10001)
+
+[ASSERTION PASSED] SolanaCpiSettlement event emitted:
+  Sender: 0x8b563A8c9eeF530300e92E26457D1AB001daEcC7
+  Receiver: 0x8b563A8c9eeF530300e92E26457D1AB001daEcC7
+  ProgramId: 0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d
+
+Verifying settlement via Rome CLI: `rome tx hadrian 0x03133ff0ceaede07bd56a84bc1b4b86e39843fd3ca92d48d53339c13154cb519`
+[ASSERTION PASSED] Rome CLI reported status: success
+  Solana Devnet Settlement Signature: WtqV4JDkVnM4CDqTueSuiVqHX6YoJom4MCu56TazPvpQVui9qG5Jd9ysbBUeqSiAHmaDrgQL6ZDzKzFtVa1tyqr
+  Explorer URL: https://via-hadrian.testnet.romeprotocol.xyz/tx/0x03133ff0ceaede07bd56a84bc1b4b86e39843fd3ca92d48d53339c13154cb519
+
+Verifying inner Memo program invocation on Solana devnet...
+[ASSERTION PASSED] Found inner Memo program log in Solana tx: Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr invoke [2]
+
+==================================================
+ALL INTEGRATION TEST ASSERTIONS PASSED SUCCESSFULLY!
+==================================================
+```
+
 ---
 
 ## 6. Execution Milestones

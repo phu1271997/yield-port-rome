@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   useAccount,
   useBalance,
@@ -242,6 +243,45 @@ export default function AppDashboard() {
     receiptError?.message ||
     null;
 
+  // Sonner Toast Lifecycle
+  useEffect(() => {
+    if (isTxPending) {
+      toast.loading("Awaiting wallet approval...", { id: "tx-lifecycle" });
+    }
+  }, [isTxPending]);
+
+  useEffect(() => {
+    if (txHash && isTxConfirming) {
+      toast.loading("Transaction submitted! Settling atomically on Rome & Solana...", {
+        id: "tx-lifecycle",
+        description: `Tx: ${txHash.slice(0, 10)}...${txHash.slice(-6)}`,
+      });
+    }
+  }, [txHash, isTxConfirming]);
+
+  useEffect(() => {
+    if (isTxSuccess && txHash) {
+      toast.success("Transaction Settled Successfully!", {
+        id: "tx-lifecycle",
+        description: "Atomic settlement confirmed across Rome EVM and Solana SVM.",
+        action: {
+          label: "View Explorer",
+          onClick: () => window.open(getExplorerTxUrl(txHash), "_blank"),
+        },
+      });
+      refreshAll();
+    }
+  }, [isTxSuccess, txHash]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      toast.error("Transaction Reverted", {
+        id: "tx-lifecycle",
+        description: errorMessage,
+      });
+    }
+  }, [errorMessage]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* Header */}
@@ -359,7 +399,7 @@ export default function AppDashboard() {
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vault TVL</div>
             <div className="text-xl font-bold font-mono mt-1">${totalAssets}</div>
-            <div className="text-[11px] text-slate-400">USDC Deposits</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">USDC Deposits</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -367,16 +407,16 @@ export default function AppDashboard() {
             <div className="text-xl font-bold font-mono text-emerald-500 mt-1 flex items-baseline gap-1">
               {formattedApy}
               {apyIsEstimated && (
-                <span className="text-[10px] text-slate-400 font-normal">est.</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">est.</span>
               )}
             </div>
-            <div className="text-[11px] text-slate-400">Aave v3 Rome Strategy</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">Aave v3 Rome Strategy</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Share Price</div>
             <div className="text-xl font-bold font-mono mt-1">{sharePrice}</div>
-            <div className="text-[11px] text-slate-400">USDC per ypUSDC</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">USDC per ypUSDC</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -384,14 +424,14 @@ export default function AppDashboard() {
             <div className="text-xl font-bold font-mono text-amber-500 mt-1">
               {Number(userShares).toFixed(4)}
             </div>
-            <div className="text-[11px] text-slate-400">ypUSDC Shares</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">ypUSDC Shares</div>
           </div>
         </div>
 
         {/* Main Vault Interactive Card */}
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           {/* Tabs */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-950 mb-6 border border-slate-200 dark:border-slate-850">
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-950 mb-6 border border-slate-200 dark:border-slate-800">
             <button
               onClick={() => {
                 setActiveTab("deposit");
@@ -666,7 +706,7 @@ export default function AppDashboard() {
             <button
               onClick={handleExplicitCpi}
               disabled={isTxPending || isTxConfirming || !isConnected}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold text-xs rounded-xl border border-slate-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-amber-400 font-semibold text-xs rounded-xl border border-amber-600/30 dark:border-slate-700 transition-colors disabled:opacity-50 shadow-sm"
             >
               Fire Test CPI
             </button>

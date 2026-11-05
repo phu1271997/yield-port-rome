@@ -5,6 +5,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:integration:hadrian": "hardhat run scripts/test_hadrian_cpi.ts --network hadrian",
     "export-registry": "node scripts/export_registry_for_web.js",
     "deploy:local": "hardhat run scripts/deploy_vault.ts",
     "deploy:cpi:hadrian": "hardhat run scripts/deploy_cpi_proof.ts --network hadrian",
