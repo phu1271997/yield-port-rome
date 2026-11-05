@@ -1,0 +1,42 @@
+{
+  "name": "yield-port",
+  "version": "1.0.0",
+  "description": "Yield Port: ERC-4626 vault on Rome EVM earning native Solana lending yield via atomic CPI",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "export-registry": "node scripts/export_registry_for_web.js",
+    "deploy:local": "hardhat run scripts/deploy_vault.ts",
+    "deploy:cpi:hadrian": "hardhat run scripts/deploy_cpi_proof.ts --network hadrian",
+    "deploy:hadrian": "hardhat run scripts/deploy_vault.ts --network hadrian",
+    "deploy:rubicon": "hardhat run scripts/deploy_vault.ts --network rubicon",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm run export-registry && npm --prefix web run build",
+    "web:start": "npm --prefix web run start"
+  },
+  "keywords": [
+    "rome-protocol",
+    "solana",
+    "evm",
+    "erc4626",
+    "cpi",
+    "arena",
+    "lending"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@rome-protocol/registry": "github:rome-protocol/rome-registry#v0.3.0",
+    "@rome-protocol/rome-solidity": "github:rome-protocol/rome-solidity",
+    "@types/node": "^20.11.30",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
+    "hardhat": "^2.22.18",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

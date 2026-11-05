@@ -1,0 +1,7 @@
+{
+  "network": "hadrian",
+  "chainId": 200010,
+  "cpiProof": "0x06E1000f17ed4df83940A0b403D69D292188F2b0",
+  "memoProgram": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+  "memoBytes32": "0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d"
+}
