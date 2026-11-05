@@ -7,15 +7,27 @@ import { hadrian, rubicon } from "../lib/rome";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { Toaster } from "sonner";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 10_000,
+      gcTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export const config = createConfig({
   chains: [hadrian, rubicon],
   connectors: [injected()],
   multiInjectedProviderDiscovery: true,
+  batch: {
+    multicall: true,
+  },
+  pollingInterval: 12_000,
   transports: {
-    [hadrian.id]: http(),
-    [rubicon.id]: http(),
+    [hadrian.id]: http(hadrian.rpcUrls.default.http[0], { batch: { wait: 50 } }),
+    [rubicon.id]: http(rubicon.rpcUrls.default.http[0], { batch: { wait: 50 } }),
   },
   ssr: true,
 });

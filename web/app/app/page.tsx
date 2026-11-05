@@ -8,7 +8,7 @@ import {
   useBalance,
   useConnect,
   useDisconnect,
-  useReadContract,
+  useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
   useChainId,
@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Plus,
 } from "lucide-react";
 import { YIELD_VAULT_ABI, ERC20_ABI } from "../../lib/abi";
 import { CONTRACT_CONFIG, hadrian, getExplorerTxUrl } from "../../lib/rome";
@@ -64,55 +65,6 @@ export default function AppDashboard() {
     chainId: CONTRACT_CONFIG.chainId,
   });
 
-  const { data: usdcBalanceRaw, refetch: refetchUsdc } = useReadContract({
-    address: CONTRACT_CONFIG.usdcAddress,
-    abi: ERC20_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    chainId: CONTRACT_CONFIG.chainId,
-    query: { enabled: !!address },
-  });
-
-  const { data: sharesBalanceRaw, refetch: refetchShares } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    chainId: CONTRACT_CONFIG.chainId,
-    query: { enabled: !!address },
-  });
-
-  const { data: allowanceRaw, refetch: refetchAllowance } = useReadContract({
-    address: CONTRACT_CONFIG.usdcAddress,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: address ? [address, CONTRACT_CONFIG.vaultAddress] : undefined,
-    chainId: CONTRACT_CONFIG.chainId,
-    query: { enabled: !!address },
-  });
-
-  // On-chain reads: Vault state
-  const { data: totalAssetsRaw, refetch: refetchTotalAssets } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "totalAssets",
-    chainId: CONTRACT_CONFIG.chainId,
-  });
-
-  const { data: apyBpsRaw } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "getEstimatedApyBps",
-    chainId: CONTRACT_CONFIG.chainId,
-  });
-
-  const { data: pricePerShareRaw } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "pricePerShare",
-    chainId: CONTRACT_CONFIG.chainId,
-  });
-
   // Safe parsing
   const parsedDeposit =
     depositAmount && Number(depositAmount) > 0
@@ -124,33 +76,90 @@ export default function AppDashboard() {
       ? parseUnits(withdrawAmount, 9)
       : 0n;
 
-  // Contract previews
-  const { data: previewSharesData } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "previewDeposit",
-    args: [parsedDeposit],
-    chainId: CONTRACT_CONFIG.chainId,
-    query: { enabled: parsedDeposit > 0n },
+  // Single Multicall read combining all 8 contract calls
+  const {
+    data: multicallData,
+    isLoading: isMulticallLoading,
+    refetch: refetchMulticall,
+  } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACT_CONFIG.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: address ? [address, CONTRACT_CONFIG.vaultAddress] : undefined,
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "totalAssets",
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "getEstimatedApyBps",
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "pricePerShare",
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "previewDeposit",
+        args: [parsedDeposit > 0n ? parsedDeposit : 1000000n],
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+      {
+        address: CONTRACT_CONFIG.vaultAddress,
+        abi: YIELD_VAULT_ABI,
+        functionName: "previewRedeem",
+        args: [parsedWithdrawShares > 0n ? parsedWithdrawShares : 1000000000n],
+        chainId: CONTRACT_CONFIG.chainId,
+      },
+    ],
+    query: {
+      enabled: true,
+      refetchInterval: 12_000,
+    },
   });
 
-  const { data: previewAssetsData } = useReadContract({
-    address: CONTRACT_CONFIG.vaultAddress,
-    abi: YIELD_VAULT_ABI,
-    functionName: "previewRedeem",
-    args: [parsedWithdrawShares],
-    chainId: CONTRACT_CONFIG.chainId,
-    query: { enabled: parsedWithdrawShares > 0n },
-  });
+  const usdcBalanceRaw = multicallData?.[0]?.result as bigint | undefined;
+  const sharesBalanceRaw = multicallData?.[1]?.result as bigint | undefined;
+  const allowanceRaw = multicallData?.[2]?.result as bigint | undefined;
+  const totalAssetsRaw = multicallData?.[3]?.result as bigint | undefined;
+  const apyBpsRaw = multicallData?.[4]?.result as bigint | undefined;
+  const pricePerShareRaw = multicallData?.[5]?.result as bigint | undefined;
+  const previewSharesData = parsedDeposit > 0n ? (multicallData?.[6]?.result as bigint | undefined) : undefined;
+  const previewAssetsData = parsedWithdrawShares > 0n ? (multicallData?.[7]?.result as bigint | undefined) : undefined;
 
   // Formatted numbers
-  const userUsdc = usdcBalanceRaw ? formatUnits(usdcBalanceRaw as bigint, 6) : "0.00";
-  const userShares = sharesBalanceRaw ? formatUnits(sharesBalanceRaw as bigint, 9) : "0.00";
-  const allowance = allowanceRaw ? (allowanceRaw as bigint) : 0n;
+  const userUsdc = usdcBalanceRaw ? formatUnits(usdcBalanceRaw, 6) : "0.00";
+  const userShares = sharesBalanceRaw ? formatUnits(sharesBalanceRaw, 9) : "0.00";
+  const allowance = allowanceRaw ? allowanceRaw : 0n;
   const needsApproval = parsedDeposit > 0n && allowance < parsedDeposit;
 
   const totalAssets = totalAssetsRaw
-    ? Number(formatUnits(totalAssetsRaw as bigint, 6)).toLocaleString("en-US", {
+    ? Number(formatUnits(totalAssetsRaw, 6)).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })
@@ -161,15 +170,15 @@ export default function AppDashboard() {
   const apyIsEstimated = apyNumber === null || apyNumber === 0;
 
   const sharePrice = pricePerShareRaw
-    ? Number(formatUnits(pricePerShareRaw as bigint, 6)).toFixed(4)
+    ? Number(formatUnits(pricePerShareRaw, 6)).toFixed(4)
     : "1.0000";
 
   const previewShares = previewSharesData
-    ? formatUnits(previewSharesData as bigint, 9)
+    ? formatUnits(previewSharesData, 9)
     : (Number(depositAmount || 0) * (1 / Number(sharePrice))).toFixed(4);
 
   const previewAssets = previewAssetsData
-    ? formatUnits(previewAssetsData as bigint, 6)
+    ? formatUnits(previewAssetsData, 6)
     : (Number(withdrawAmount || 0) * Number(sharePrice)).toFixed(4);
 
   // Writes
@@ -191,10 +200,39 @@ export default function AppDashboard() {
 
   const refreshAll = () => {
     refetchGas();
-    refetchUsdc();
-    refetchShares();
-    refetchAllowance();
-    refetchTotalAssets();
+    refetchMulticall();
+  };
+
+  const handleAddHadrianNetwork = async () => {
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      toast.error("No EVM wallet detected");
+      return;
+    }
+    try {
+      await (window as any).ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: `0x${hadrian.id.toString(16)}`,
+            chainName: hadrian.name,
+            rpcUrls: [hadrian.rpcUrls.default.http[0]],
+            nativeCurrency: {
+              name: hadrian.nativeCurrency.name,
+              symbol: hadrian.nativeCurrency.symbol,
+              decimals: hadrian.nativeCurrency.decimals,
+            },
+            blockExplorerUrls: [hadrian.blockExplorers.default.url],
+          },
+        ],
+      });
+      toast.success("Rome Hadrian network added to your wallet!");
+    } catch (err: any) {
+      if (err.code === 4001) {
+        toast.error("User rejected network addition.");
+      } else {
+        toast.error(`Error adding network: ${err.message}`);
+      }
+    }
   };
 
   const handleApprove = () => {
@@ -205,6 +243,7 @@ export default function AppDashboard() {
       abi: ERC20_ABI,
       functionName: "approve",
       args: [CONTRACT_CONFIG.vaultAddress, parsedDeposit],
+      gas: 200_000n,
     });
   };
 
@@ -216,6 +255,7 @@ export default function AppDashboard() {
       abi: YIELD_VAULT_ABI,
       functionName: "deposit",
       args: [parsedDeposit, address],
+      gas: 2_000_000n,
     });
   };
 
@@ -227,6 +267,7 @@ export default function AppDashboard() {
       abi: YIELD_VAULT_ABI,
       functionName: "redeem",
       args: [parsedWithdrawShares, address, address],
+      gas: 1_000_000n,
     });
   };
 
@@ -237,6 +278,7 @@ export default function AppDashboard() {
       abi: YIELD_VAULT_ABI,
       functionName: "executeAtomicCpiReceipt",
       args: [cpiTag || "arena-verification"],
+      gas: 2_000_000n,
     });
   };
 
@@ -323,11 +365,17 @@ export default function AppDashboard() {
               </button>
             )}
 
-            {/* Network Badge */}
-            <div className="hidden sm:flex items-center gap-2 bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono">
+            {/* Network Badge & One-Click Add Network Button */}
+            <button
+              onClick={handleAddHadrianNetwork}
+              className="flex items-center gap-1.5 bg-slate-200 dark:bg-slate-900 hover:bg-slate-300 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors"
+              title="Click to Add / Verify Rome Hadrian (200010) in your wallet"
+            >
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Hadrian (200010)</span>
-            </div>
+              <span className="hidden sm:inline">Hadrian (200010)</span>
+              <span className="sm:hidden">Hadrian</span>
+              <Plus className="w-3.5 h-3.5 text-slate-400 hover:text-amber-500 transition-colors" />
+            </button>
 
             {/* Theme Toggle */}
             <button
@@ -405,16 +453,28 @@ export default function AppDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vault TVL</div>
-            <div className="text-xl font-bold font-mono mt-1">${totalAssets}</div>
+            <div className="text-xl font-bold font-mono mt-1">
+              {isMulticallLoading && !totalAssetsRaw ? (
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 animate-pulse rounded my-0.5" />
+              ) : (
+                `$${totalAssets}`
+              )}
+            </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">USDC Deposits</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Lending APY</div>
             <div className="text-xl font-bold font-mono text-emerald-500 mt-1 flex items-baseline gap-1">
-              {formattedApy}
-              {apyIsEstimated && (
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">est.</span>
+              {isMulticallLoading && apyBpsRaw === undefined ? (
+                <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded my-0.5" />
+              ) : (
+                <>
+                  {formattedApy}
+                  {apyIsEstimated && (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">est.</span>
+                  )}
+                </>
               )}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">Aave v3 Rome Strategy</div>
@@ -422,14 +482,24 @@ export default function AppDashboard() {
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Share Price</div>
-            <div className="text-xl font-bold font-mono mt-1">{sharePrice}</div>
+            <div className="text-xl font-bold font-mono mt-1">
+              {isMulticallLoading && !pricePerShareRaw ? (
+                <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded my-0.5" />
+              ) : (
+                sharePrice
+              )}
+            </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">USDC per ypUSDC</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your Position</div>
             <div className="text-xl font-bold font-mono text-amber-500 mt-1">
-              {Number(userShares).toFixed(4)}
+              {isMulticallLoading && !sharesBalanceRaw && isConnected ? (
+                <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded my-0.5" />
+              ) : (
+                Number(userShares).toFixed(4)
+              )}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">ypUSDC Shares</div>
           </div>
@@ -538,9 +608,12 @@ export default function AppDashboard() {
                   <button
                     onClick={handleApprove}
                     disabled={isTxPending || isTxConfirming}
-                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all"
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
                   >
-                    {isTxConfirming ? "Confirming Approval..." : "Step 1: Approve USDC"}
+                    <ShieldCheck className="w-5 h-5" />
+                    {isTxConfirming
+                      ? "Confirming Approval..."
+                      : `Approve ${depositAmount || "0"} USDC for Deposit`}
                   </button>
                 ) : (
                   <button

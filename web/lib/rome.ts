@@ -5,6 +5,10 @@ import deployedContracts from "./contracts.json";
 const hadrianRegistry = registryData.chains.hadrian;
 const rubiconRegistry = registryData.chains.rubicon;
 
+// Resolve Multicall3 dynamically from registry
+const hadrianMulticall = registryData.contracts.hadrian?.find((c: any) => c.name === "Multicall3")?.versions?.find((v: any) => v.status === "live")?.address;
+const rubiconMulticall = registryData.contracts.rubicon?.find((c: any) => c.name === "Multicall3")?.versions?.find((v: any) => v.status === "live")?.address;
+
 if (!deployedContracts || !deployedContracts.vault) {
   throw new Error("Missing deployed contracts configuration. Please run deployment scripts first.");
 }
@@ -28,6 +32,9 @@ export const hadrian = defineChain({
       url: (hadrianRegistry.explorerUrl || "https://via-hadrian.testnet.romeprotocol.xyz").replace(/\/+$/, ""),
     },
   },
+  contracts: {
+    multicall3: hadrianMulticall ? { address: hadrianMulticall as `0x${string}` } : undefined,
+  },
   testnet: true,
 });
 
@@ -49,6 +56,9 @@ export const rubicon = defineChain({
       name: "Via Explorer",
       url: (rubiconRegistry.explorerUrl || "https://via.mainnet.romeprotocol.xyz").replace(/\/+$/, ""),
     },
+  },
+  contracts: {
+    multicall3: rubiconMulticall ? { address: rubiconMulticall as `0x${string}` } : undefined,
   },
   testnet: false,
 });
