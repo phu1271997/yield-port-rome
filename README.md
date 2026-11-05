@@ -27,9 +27,9 @@ Users receive **ypUSDC** vault shares that auto-compound as lending interest acc
 
 ## 2. Live Deployments & Arena Links
 
-- **Live Production dApp:** [https://yieldport-rome.vercel.app](https://yieldport-rome.vercel.app) *(Alternate: [https://rome-yieldport.vercel.app](https://rome-yieldport.vercel.app))*
-  - **Landing Page:** [`/`](https://yieldport-rome.vercel.app/) — 7-section marketing & architecture overview
-  - **Interactive Vault App:** [`/app`](https://yieldport-rome.vercel.app/app) — Deposit, Withdraw, Live Stats & On-Demand CPI Verifier
+- **Live Production dApp:** [https://yieldport-vault.vercel.app](https://yieldport-vault.vercel.app) *(Alternates: [https://yieldport-arena.vercel.app](https://yieldport-arena.vercel.app) · [https://yieldport-rome.vercel.app](https://yieldport-rome.vercel.app))*
+  - **Landing Page:** [`/`](https://yieldport-vault.vercel.app/) — 7-section marketing & architecture overview
+  - **Interactive Vault App:** [`/app`](https://yieldport-vault.vercel.app/app) — Deposit, Withdraw, Live Stats & On-Demand CPI Verifier
 - **Public GitHub Repository:** [https://github.com/phu1271997/yield-port-rome](https://github.com/phu1271997/yield-port-rome)
 - **Deployed Contracts (Rome Hadrian Testnet - Chain ID `200010`):**
   - **YieldVault (ERC-4626 + Atomic Solana CPI):** [`0x35277217b31573b0547a63469C19F7F35e7566Ab`](https://via-hadrian.testnet.romeprotocol.xyz/address/0x35277217b31573b0547a63469C19F7F35e7566Ab)
