@@ -37,6 +37,7 @@ import {
 import { YIELD_VAULT_ABI, ERC20_ABI } from "../../lib/abi";
 import { CONTRACT_CONFIG, hadrian, getExplorerTxUrl } from "../../lib/rome";
 import { useTheme } from "../../components/ThemeProvider";
+import { WalletModal } from "../../components/WalletModal";
 
 export default function AppDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -47,6 +48,9 @@ export default function AppDashboard() {
   const { switchChain } = useSwitchChain();
 
   const isWrongChain = isConnected && currentChainId !== CONTRACT_CONFIG.chainId;
+
+  // Wallet Modal
+  const [isWalletModalOpen, setWalletModalOpen] = useState(false);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
@@ -349,7 +353,7 @@ export default function AppDashboard() {
               </div>
             ) : (
               <button
-                onClick={() => connect({ connector: connectors[0] })}
+                onClick={() => setWalletModalOpen(true)}
                 className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-4 py-2 rounded-xl shadow-md shadow-amber-500/10"
               >
                 <Wallet className="w-4 h-4" />
@@ -518,7 +522,7 @@ export default function AppDashboard() {
               <div className="pt-2">
                 {!isConnected ? (
                   <button
-                    onClick={() => connect({ connector: connectors[0] })}
+                    onClick={() => setWalletModalOpen(true)}
                     className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all"
                   >
                     Connect Wallet to Deposit
@@ -600,7 +604,7 @@ export default function AppDashboard() {
               <div className="pt-2">
                 {!isConnected ? (
                   <button
-                    onClick={() => connect({ connector: connectors[0] })}
+                    onClick={() => setWalletModalOpen(true)}
                     className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all"
                   >
                     Connect Wallet to Withdraw
@@ -716,6 +720,12 @@ export default function AppDashboard() {
           </div>
         </div>
       </main>
+
+      {/* EIP-6963 Wallet Modal */}
+      <WalletModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ const queryClient = new QueryClient();
 export const config = createConfig({
   chains: [hadrian, rubicon],
   connectors: [injected()],
+  multiInjectedProviderDiscovery: true,
   transports: {
     [hadrian.id]: http(),
     [rubicon.id]: http(),

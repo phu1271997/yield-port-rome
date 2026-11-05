@@ -214,9 +214,9 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            No cross-chain bridges. No leaving MetaMask. Deposit USDC into an ERC-4626 vault
-            that supplies into Rome lending pools while simultaneously logging an atomic
-            Solana CPI settlement receipt in the exact same transaction.
+            No cross-chain bridges. Connect any EVM wallet (MetaMask, Rabby, Phantom in EVM mode).
+            Deposit USDC into an ERC-4626 vault that supplies into Rome lending pools while
+            simultaneously logging an atomic Solana CPI settlement receipt in the exact same transaction.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -351,9 +351,9 @@ export default function LandingPage() {
             </div>
             <h3 className="text-lg font-bold">What You Keep</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              You stay in MetaMask. You hold standard ERC-4626 vault shares (ypUSDC) with full
-              self-custody, inflation attack virtual offsets, and the ability to withdraw back
-              to USDC whenever you want.
+              Connect any EVM wallet (MetaMask, Rabby, Phantom in EVM mode). You hold standard
+              ERC-4626 vault shares (ypUSDC) with full self-custody, inflation attack virtual
+              offsets, and the ability to withdraw back to USDC whenever you want.
             </p>
           </div>
         </div>
@@ -377,8 +377,8 @@ export default function LandingPage() {
             </div>
             <h3 className="text-xl font-bold">Deposit USDC</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Connect your MetaMask wallet on Rome Hadrian (chainId 200010) and approve your USDC deposit.
-              Gas is paid natively in USDC.
+              Connect any EVM wallet (MetaMask, Rabby, Phantom in EVM mode) on Rome Hadrian (chainId 200010)
+              and approve your USDC deposit. Gas is paid natively in USDC.
             </p>
           </div>
 
@@ -541,8 +541,8 @@ export default function LandingPage() {
           Ready to Experience Atomic Cross-VM Yield?
         </h2>
         <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base">
-          Connect your wallet to Rome Hadrian testnet and test depositing USDC with instant shares
-          and atomic Solana verification.
+          Connect any EVM wallet (MetaMask, Rabby, Phantom in EVM mode) to Rome Hadrian testnet
+          and test depositing USDC with instant shares and atomic Solana verification.
         </p>
         <div className="pt-2">
           <Link
